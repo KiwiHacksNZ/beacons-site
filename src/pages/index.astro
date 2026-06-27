@@ -1,39 +1,37 @@
 ---
 // KiwiHacks Beacons Landing Page
 
-let tiers = [];
-const ATTIO_API_KEY = import.meta.env.ATTIO_API_KEY;
+const AIRTABLE_TOKEN = import.meta.env.AIRTABLE_TOKEN;
+const AIRTABLE_BASE_ID = import.meta.env.AIRTABLE_BASE_ID;
+const AIRTABLE_TABLE = import.meta.env.AIRTABLE_TABLE ?? 'Tiers';
 
-if (ATTIO_API_KEY) {
+let tiers = [];
+
+if (AIRTABLE_TOKEN && AIRTABLE_BASE_ID) {
     try {
-        const response = await fetch('https://api.attio.com/v2/objects/referral_tier/records', {
-            headers: {
-                'Authorization': `Bearer ${ATTIO_API_KEY}`,
-                'Accept': 'application/json'
-            }
+        const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE)}?sort[0][field]=Order&sort[0][direction]=asc`;
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${AIRTABLE_TOKEN}` }
         });
-        if (response.ok) {
-            const data = await response.json();
-            tiers = data.data.map((record) => {
-                const getVal = (attr) => record.values[attr]?.[0]?.value;
-                return {
-                    name: getVal('name') || 'Unnamed Tier',
-                    icon: getVal('icon') || '⭐️',
-                    requirement: getVal('requirement') || '0 Referrals',
-                    benefits: getVal('benefits')?.split('\n').filter(Boolean) || [],
-                    isFeatured: getVal('is_featured') || false,
-                    order: getVal('order') || 0
-                };
-            }).sort((a, b) => a.order - b.order);
+        if (res.ok) {
+            const data = await res.json();
+            tiers = data.records.map((r) => ({
+                name: r.fields['Name'] ?? 'Unnamed Tier',
+                icon: r.fields['Icon'] ?? '⭐️',
+                requirement: r.fields['Requirement'] ?? '0 Referrals',
+                benefits: (r.fields['Benefits'] ?? '').split('\n').filter(Boolean),
+                isFeatured: r.fields['Featured'] ?? false,
+            }));
         } else {
-            console.error("Failed to fetch from Attio:", await response.text());
+            console.error('Airtable fetch failed:', await res.text());
         }
-    } catch (error) {
-        console.error("Error fetching from Attio:", error);
+    } catch (e) {
+        console.error('Airtable error:', e);
     }
 }
 
-if (!tiers || tiers.length === 0) {
+// Fallback if not configured yet
+if (tiers.length === 0) {
     tiers = [
         {
             name: 'Seedling',
@@ -94,7 +92,6 @@ if (!tiers || tiers.length === 0) {
                 <div class="tiers-grid">
                     {tiers.map((tier) => (
                         <div class={`tier-card ${tier.isFeatured ? 'featured' : ''}`}>
-                            <div class="tier-icon">{tier.icon}</div>
                             <h3 class="display">{tier.name}</h3>
                             <div class="tier-req mono">{tier.requirement}</div>
                             <ul class="tier-benefits">
@@ -287,11 +284,17 @@ if (!tiers || tiers.length === 0) {
 
     .tiers-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: repeat(6, 1fr);
         gap: 1.5rem;
-        align-items: start;
+        align-items: stretch;
         text-align: left;
     }
+
+    .tiers-grid .tier-card:nth-child(1) { grid-column: 1 / 3; }
+    .tiers-grid .tier-card:nth-child(2) { grid-column: 3 / 5; }
+    .tiers-grid .tier-card:nth-child(3) { grid-column: 5 / 7; }
+    .tiers-grid .tier-card:nth-child(4) { grid-column: 2 / 4; }
+    .tiers-grid .tier-card:nth-child(5) { grid-column: 4 / 6; }
 
     .tier-card {
         background: rgba(255, 255, 255, 0.5);
@@ -382,6 +385,14 @@ if (!tiers || tiers.length === 0) {
             padding: 1rem;
             display: block;
             margin: 2rem auto;
+        }
+
+        .tiers-grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        .tiers-grid .tier-card:nth-child(n) {
+            grid-column: 1 / -1 !important;
         }
 
         .stars { display: none; }
