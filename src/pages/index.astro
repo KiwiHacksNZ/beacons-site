@@ -21,6 +21,7 @@ if (AIRTABLE_TOKEN && AIRTABLE_BASE_ID) {
                 requirement: r.fields['Requirement'] ?? '0 Referrals',
                 benefits: (r.fields['Benefits'] ?? '').split('\n').filter(Boolean),
                 isFeatured: r.fields['Featured'] ?? false,
+                limit: r.fields['Limit'] ?? null,
             }));
         } else {
             console.error('Airtable fetch failed:', await res.text());
@@ -38,21 +39,24 @@ if (tiers.length === 0) {
             icon: '🌱',
             requirement: '1-5 Referrals',
             benefits: ['[Benefit 1]', '[Benefit 2]'],
-            isFeatured: false
+            isFeatured: false,
+            limit: null
         },
         {
             name: 'Pathfinder',
             icon: '🌿',
             requirement: '6-15 Referrals',
             benefits: ['[Benefit 1]', '[Benefit 2]', '[Benefit 3]'],
-            isFeatured: true
+            isFeatured: true,
+            limit: null
         },
         {
             name: 'Beacon',
             icon: '🌳',
             requirement: '16+ Referrals',
             benefits: ['[Benefit 1]', '[Benefit 2]', '[Benefit 3]'],
-            isFeatured: false
+            isFeatured: false,
+            limit: null
         }
     ];
 }
@@ -92,6 +96,7 @@ if (tiers.length === 0) {
                         <div class={`tier-card ${tier.isFeatured ? 'featured' : ''}`}>
                             <h3 class="display">{tier.name}</h3>
                             <div class="tier-req mono">{tier.requirement}</div>
+                            {tier.limit && <div class="tier-limit mono">{tier.limit}</div>}
                             <ul class="tier-benefits">
                                 {tier.benefits.map((benefit) => (
                                     <li>{benefit}</li>
@@ -393,6 +398,15 @@ if (tiers.length === 0) {
         font-size: 0.8rem;
         display: block;
         margin-bottom: 1rem;
+    }
+
+    .tier-limit {
+        color: var(--bright-blue);
+        font-size: 0.8rem;
+        display: block;
+        margin-top: -0.75rem;
+        margin-bottom: 1rem;
+        font-weight: 700;
     }
 
     .tier-benefits {
